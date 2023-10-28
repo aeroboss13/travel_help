@@ -184,7 +184,11 @@ recommend_button.pack()
 
 # Вкладка "ВИРТУАЛЬНЫЕ ТУРЫ"
 virtual_tours_tab = ttk.Frame(tab_control)
+<<<<<<< HEAD
 tab_control.add(virtual_tours_tab, text="ВИРТУАЛЬНЫЕ ТУРЫ")
+=======
+tab_control.add(virtual_tours_tab, text="Виртуальные туры")
+>>>>>>> d798b95 (Тестовый)
 
 virtual_tours_button = tk.Button(virtual_tours_tab, text="Открыть виртуальные туры", command=open_virtual_tours)
 virtual_tours_button.pack()
