@@ -11,6 +11,9 @@ app = ThemedTk(theme="radiance")
 app.title("Путешествия")
 app.geometry("800x600")
 
+# Переменная для отслеживания текущей темы
+current_theme = "radiance"
+
 # База данных для хранения пользователей (просто для примера)
 users = {'user1': 'password1', 'user2': 'password2'}
 
@@ -132,10 +135,12 @@ def get_safety_recommendations():
     country_dropdown = ttk.Combobox(safety_window, textvariable=country_var, values=countries)
     country_dropdown.pack()
 
+    safety_text = tk.Text(safety_window, wrap=tk.WORD)
+    safety_text.pack()
+
     def show_recommendations():
         selected_country = country_var.get()
-        recommendations = "Рекомендации для " + selected_country + ":\n"
-        # Здесь можно добавить рекомендации для каждой страны
+        recommendations = safety_recommendations.get(selected_country, "Рекомендации отсутствуют")
         safety_text.config(state="normal")
         safety_text.delete("1.0", "end")
         safety_text.insert("end", recommendations)
@@ -144,12 +149,19 @@ def get_safety_recommendations():
     show_button = ttk.Button(safety_window, text="Получить рекомендации", command=show_recommendations)
     show_button.pack()
 
-    safety_text = tk.Text(safety_window, state="disabled", wrap=tk.WORD)
-    safety_text.pack()
-
 
 def open_virtual_tours():
     webbrowser.open("https://www.airpano.ru/list-all-virtual-tours.php")
+
+
+def toggle_theme():
+    global current_theme
+    if current_theme == "radiance":
+        app.set_theme("black")
+        current_theme = "black"
+    else:
+        app.set_theme("radiance")
+        current_theme = "radiance"
 
 
 # Добавляем изображение для дизайна
@@ -192,6 +204,10 @@ tab_control.add(virtual_tours_tab, text="ВИРТУАЛЬНЫЕ ТУРЫ")
 
 virtual_tours_button = ttk.Button(virtual_tours_tab, text="Открыть виртуальные туры", command=open_virtual_tours)
 virtual_tours_button.pack()
+
+# Виджет-ползунок для переключения темы
+theme_toggle_button = ttk.Button(app, text="Сменить тему", command=toggle_theme)
+theme_toggle_button.pack(side="top")
 
 tab_control.pack(expand=1, fill="both")
 
