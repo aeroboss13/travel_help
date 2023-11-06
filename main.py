@@ -3,22 +3,26 @@ from tkinter import ttk
 from tkinter import messagebox
 from PIL import Image, ImageTk
 import webbrowser
-from ttkthemes import ThemedTk
 import sqlite3
+import socket
+import threading
 
-# Создаем окно приложения с использованием темы
+# Import ThemedTk from ttkthemes
+from ttkthemes import ThemedTk
+
+# Create the main application window using the themed theme
 app = ThemedTk(theme="radiance")
 app.title("Путешествия")
 app.geometry("800x600")
 
-# Переменная для отслеживания текущей темы
+# Variable to track the current theme
 current_theme = "radiance"
 
-# Создаем подключение к базе данных SQLite
+# Create a connection to the SQLite database
 db_connection = sqlite3.connect("travel_app.db")
 db_cursor = db_connection.cursor()
 
-# Создаем таблицу для рекомендаций по безопасности, если ее нет
+# Create a table for safety recommendations if it doesn't exist
 db_cursor.execute('''
     CREATE TABLE IF NOT EXISTS safety_recommendations (
         country TEXT PRIMARY KEY,
@@ -26,7 +30,7 @@ db_cursor.execute('''
     )
 ''')
 
-# Создаем таблицу для пользователей, если ее нет
+# Create a table for users if it doesn't exist
 db_cursor.execute('''
     CREATE TABLE IF NOT EXISTS users (
         username TEXT PRIMARY KEY,
@@ -34,24 +38,21 @@ db_cursor.execute('''
     )
 ''')
 
-# Добавляем рекомендации по безопасности в базу данных
-safety_recommendations = {
-    'Страна 1': "Рекомендации для Страны 1:\n"
-                "- Поддерживайте местные законы и обычаи.\n"
-                "- Обратите внимание на погодные условия и сезонные опасности.",
-    'Страна 2': "Рекомендации для Страны 2:\n"
-                "- Изучите местный язык и обычаи, чтобы лучше взаимодействовать с местными жителями.\n"
-                "- Пользуйтесь официальными такси и избегайте неофициальных перевозчиков.",
-    'Страна 3': "Рекомендации для Страны 3:\n"
-                "- Перед поездкой уточните информацию о местной медицинской помощи и вакцинациях.\n"
-                "- Соблюдайте осторожность при посещении отдаленных мест и предупреждайте кого-то о вашем маршруте."
-}
+# Create a table for chat messages
+db_cursor.execute('''
+    CREATE TABLE IF NOT EXISTS chat_messages (
+        id INTEGER PRIMARY KEY,
+        sender TEXT,
+        message TEXT
+    )
+''')
 
-for country, recommendations in safety_recommendations.items():
-    db_cursor.execute('INSERT OR REPLACE INTO safety_recommendations (country, recommendations) VALUES (?, ?)',
-                      (country, recommendations))
+# Create a socket for chat
+chat_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+chat_socket.connect(("localhost", 8000))
 
-db_connection.commit()
+# Rest of your code...
+
 
 
 # Функция для добавления пользователя в базу данных
@@ -65,6 +66,25 @@ def check_user_credentials(username, password):
     db_cursor.execute('SELECT password FROM users WHERE username = ?', (username,))
     result = db_cursor.fetchone()
     return result[0] if result and result[0] == password else None
+
+
+# Функция для добавления сообщения в чат
+def add_message_to_db(sender, message):
+    db_cursor.execute('INSERT INTO chat_messages (sender, message) VALUES (?, ?)', (sender, message))
+    db_connection.commit()
+
+
+# Функция для получения сообщений из чата
+def get_chat_messages_from_db():
+    db_cursor.execute('SELECT sender, message FROM chat_messages')
+    messages = db_cursor.fetchall()
+    return messages
+
+
+# Функция для очистки чата
+def clear_chat():
+    db_cursor.execute('DELETE FROM chat_messages')
+    db_connection.commit()
 
 
 # Определение функций для функциональности приложения
@@ -150,12 +170,24 @@ def open_travel_chat():
         chat_text.insert("end", "Вы: " + message + "\n")
         chat_text.see("end")
         chat_entry.delete("1.0", "end")
+        # Отправляем сообщение через сокс
+        chat_socket.send(message.encode())
 
     chat_entry = tk.Text(chat_window, height=3)
     chat_entry.pack()
 
     send_button = ttk.Button(chat_window, text="Отправить", command=send_message)
     send_button.pack()
+
+    def update_chat():
+        while True:
+            message = chat_socket.recv(1024).decode()
+            chat_text.insert("end", "Собеседник: " + message + "\n")
+            chat_text.see("end")
+
+    chat_thread = threading.Thread(target=update_chat)
+    chat_thread.daemon = True
+    chat_thread.start()
 
 
 def get_safety_recommendations_from_db(country):
