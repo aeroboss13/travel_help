@@ -8,7 +8,6 @@ import threading
 import asyncio
 import websockets
 
-# Import ThemedTk from ttkthemes
 from ttkthemes import ThemedTk
 
 class ChatApplication(tk.Toplevel):
@@ -32,12 +31,12 @@ class ChatApplication(tk.Toplevel):
         asyncio.create_task(self.update_chat())
 
     async def send_message(self, message):
-        uri = "ws://localhost:8765"  # Используйте свой адрес и порт
+        uri = "ws://localhost:8765"
         async with websockets.connect(uri) as websocket:
             await websocket.send(message)
 
     async def update_chat(self):
-        uri = "ws://localhost:8765"  # Используйте свой адрес и порт
+        uri = "ws://localhost:8765"
         async with websockets.connect(uri) as websocket:
             while True:
                 message = await websocket.recv()
@@ -52,16 +51,14 @@ class ChatApplication(tk.Toplevel):
             self.chat_entry.delete("1.0", "end")
             asyncio.create_task(self.send_message(message))
 
-# Create the main application window using the themed theme
+current_theme = "radiance"
 app = ThemedTk(theme="radiance")
 app.title("Путешествия")
 app.geometry("800x600")
 
-# Create a connection to the SQLite database
 db_connection = sqlite3.connect("travel_app.db")
 db_cursor = db_connection.cursor()
 
-# Create a table for safety recommendations if it doesn't exist
 db_cursor.execute('''
     CREATE TABLE IF NOT EXISTS safety_recommendations (
         country TEXT PRIMARY KEY,
@@ -69,7 +66,6 @@ db_cursor.execute('''
     )
 ''')
 
-# Create a table for users if it doesn't exist
 db_cursor.execute('''
     CREATE TABLE IF NOT EXISTS users (
         username TEXT PRIMARY KEY,
@@ -77,7 +73,6 @@ db_cursor.execute('''
     )
 ''')
 
-# Create a table for chat messages
 db_cursor.execute('''
     CREATE TABLE IF NOT EXISTS chat_messages (
         id INTEGER PRIMARY KEY,
@@ -86,45 +81,37 @@ db_cursor.execute('''
     )
 ''')
 
-# Функция для добавления пользователя в базу данных
 def add_user_to_db(username, password):
     db_cursor.execute('INSERT OR REPLACE INTO users (username, password) VALUES (?, ?)', (username, password))
     db_connection.commit()
 
-# Функция для проверки учетных данных пользователя
 def check_user_credentials(username, password):
     db_cursor.execute('SELECT password FROM users WHERE username = ?', (username,))
     result = db_cursor.fetchone()
     return result[0] if result and result[0] == password else None
 
-# Функция для добавления сообщения в чат
 def add_message_to_db(sender, message):
     db_cursor.execute('INSERT INTO chat_messages (sender, message) VALUES (?, ?)', (sender, message))
     db_connection.commit()
 
-# Функция для получения сообщений из чата
 def get_chat_messages_from_db():
     db_cursor.execute('SELECT sender, message FROM chat_messages')
     messages = db_cursor.fetchall()
     return messages
 
-# Функция для очистки чата
 def clear_chat():
     db_cursor.execute('DELETE FROM chat_messages')
     db_connection.commit()
 
-# Функция для добавления рекомендаций по безопасности в базу данных
 def add_safety_recommendations_to_db(country, recommendations):
     db_cursor.execute('INSERT OR REPLACE INTO safety_recommendations (country, recommendations) VALUES (?, ?)', (country, recommendations))
     db_connection.commit()
 
-# Функция для получения рекомендаций по безопасности из базы данных
 def get_safety_recommendations_from_db(country):
     db_cursor.execute('SELECT recommendations FROM safety_recommendations WHERE country = ?', (country,))
     result = db_cursor.fetchone()
     return result[0] if result else "Нет данных о рекомендациях по безопасности для выбранной страны"
 
-# Определение функций для функциональности приложения
 def register_user():
     registration_window = tk.Toplevel(app)
     registration_window.title("Регистрация")
@@ -283,6 +270,14 @@ def toggle_theme():
     else:
         app.set_theme("radiance")
         current_theme = "radiance"
+
+    # Обновление темы для дочерних окон
+    for window in app.winfo_children():
+        try:
+            window.set_theme(current_theme)
+        except AttributeError:
+            pass  # Игнорировать дочерние элементы, которые не поддерживают изменение темы
+
 
 image = Image.open("background.jpg")
 background_image = ImageTk.PhotoImage(image)
